@@ -13,6 +13,11 @@ app = Flask(__name__)
 load_dotenv()
 
 mongoURI = os.getenv("mongoURI")
+redisPassword = os.getenv("redisPassword")
+redisHost = os.getenv("redisHost")
+redisPort = os.getenv("redisPort")
+storageRateLimit = os.getenv("storageRateLimit")
+
 connect(db="StockBrokerSystem", host = mongoURI)
 
 try:
@@ -30,27 +35,37 @@ limiter = Limiter(get_remote_address, app=app, default_limits=["1000 per minute"
 def fetchTradesAPI():
     
     print("Received request for fetching all trades")
-    trades = getAllTrades(redisClient)
-
-    if not trades:
-        return jsonify({"success": True, "message": "No trades available", "data": []}), 200
     
+    try:
+        trades = getAllTrades(redisClient)
+
+        if not trades:
+            return jsonify({"success": True, "message": "No trades available", "data": []}), 200
+        
+    except Exception as e:
+        print(f"Error fetching trades: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
     return jsonify({"success": True, "data": trades}), 200
 
 @app.route('/api/fetch_order', methods=['GET'])
 @limiter.limit("100 per minute")
 def fetchOrderAPI():
-    
+
     print("Received request for fetching an order")
     data = request.json
     print("Data received:", data)
 
     if not data or 'order_id' not in data:
         return jsonify({"error": "Invalid data"}), 400
-    
-    order = getOrderInfo(redisClient, data['order_id'])
-    if not order:
-        return jsonify({"error": "Invalid Order_ID"}), 400
+
+    try:
+        order = getOrderInfo(redisClient, data['order_id'])
+        if not order:
+            return jsonify({"error": "Invalid Order_ID"}), 400
+    except Exception as e:
+        print(f"Error fetching order: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
     return jsonify({"success": True, "data": order}), 200
 
@@ -60,9 +75,13 @@ def fetchAllOrdersAPI():
     
     print("Received request for fetching all orders")
     
-    orders = getAllOrders(redisClient)
-    if not orders:
-        return jsonify({"error": "No orders yet!"}), 400
+    try:
+        orders = getAllOrders(redisClient)
+        if not orders:
+            return jsonify({"error": "No orders yet!"}), 400
+    except Exception as e:
+        print(f"Error fetching all orders: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
     return jsonify({"success": True, "data": orders}), 200
 
