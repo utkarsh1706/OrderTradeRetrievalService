@@ -37,5 +37,34 @@ def fetchTradesAPI():
     
     return jsonify({"success": True, "data": trades}), 200
 
+@app.route('/api/fetch_order', methods=['GET'])
+@limiter.limit("100 per minute")
+def fetchOrderAPI():
+    
+    print("Received request for fetching an order")
+    data = request.json
+    print("Data received:", data)
+
+    if not data or 'order_id' not in data:
+        return jsonify({"error": "Invalid data"}), 400
+    
+    order = getOrderInfo(redisClient, data['order_id'])
+    if not order:
+        return jsonify({"error": "Invalid Order_ID"}), 400
+
+    return jsonify({"success": True, "data": order}), 200
+
+@app.route('/api/fetch_allOrders', methods=['GET'])
+@limiter.limit("100 per minute")
+def fetchAllOrdersAPI():
+    
+    print("Received request for fetching all orders")
+    
+    orders = getAllOrders(redisClient)
+    if not orders:
+        return jsonify({"error": "No orders yet!"}), 400
+
+    return jsonify({"success": True, "data": orders}), 200
+
 if __name__ == '__main__':
     app.run(debug=True, port=5001) 
