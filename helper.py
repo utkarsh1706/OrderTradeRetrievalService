@@ -16,6 +16,7 @@ def getAllTrades(redisClient):
 
 def getOrderInfoMongo(orderId):
     try:
+        print("Checking MongoDB for orderID:", orderId)
         order = Orders.objects.get(oid=orderId)
         orderInfo = {
             "order_price": order.price,
@@ -32,7 +33,7 @@ def getOrderInfo(redisClient, oid):
     orderKey = f"order:{oid}"
     orderData = redisClient.hgetall(orderKey)
     if not orderData:
-        print(f"No order found with ID: {oid}")
+        print(f"No order found with ID: {oid} in Redis")
         return getOrderInfoMongo(oid)
     orderData = {k.decode('utf-8'): v.decode('utf-8') for k, v in orderData.items()}
     orderInfo = {
@@ -55,10 +56,10 @@ def getAllOrders(redisClient):
             if orderData:
                 orderData = {k.decode('utf-8'): v.decode('utf-8') for k, v in orderData.items()}
                 orderInfo = {
-                    "order_price": float(orderData.get("order_price", 0)),
-                    "order_quantity": float(orderData.get("order_quantity", 0)),
-                    "average_traded_price": float(orderData.get("average_traded_price", 0)),
-                    "traded_quantity": float(orderData.get("traded_quantity", 0)),
+                    "order_price": float(orderData.get("price", 0)),  
+                    "order_quantity": float(orderData.get("quantity", 0)),  
+                    "average_traded_price": float(orderData.get("averagePrice", 0)),  
+                    "traded_quantity": float(orderData.get("filledQuantity", 0)),  
                     "order_alive": 1 if orderData.get("status") in ["OPEN", "PARTIALLY_FILLED"] else 0
                 }
                 orders.append(orderInfo)
